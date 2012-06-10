@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns="com.controls.*" 
+	 width="100%" height="100%" horizontalGap="0" horizontalAlign="left" horizontalScrollPolicy="off" 
+	 creationComplete="initComp()">
+
+	<mx:Script>
+		<![CDATA[
+			import mx.controls.DataGrid;
+			import mx.controls.dataGridClasses.DataGridBase;
+			
+			private var isColumnSortable:Boolean;
+			
+			private function initComp():void 
+			{
+				isColumnSortable = data.sortable;
+			}			
+	
+			private function showPopUp(event:MouseEvent):void 
+			{
+				data.createPopUpFilter(this);
+			}
+	
+			private function cleanFilter(event:MouseEvent):void 
+			{
+				data.cleanFilter();
+			}
+			
+			private function mouseOverHandler(event:MouseEvent):void 
+			{
+				dispatchEvent(new MouseEvent(MouseEvent.MOUSE_OUT));
+				event.stopImmediatePropagation();
+				data.sortable = false;
+			}
+			
+			private function mouseOutHandler(event:MouseEvent):void 
+			{
+				event.stopImmediatePropagation();
+				data.sortable = isColumnSortable;
+			}
+			
+		]]>
+	</mx:Script>
+	
+	<mx:Label id="lbHeader" textAlign="left" text="{data.headerText}" toolTip="{data.toolTip}" width="100%"/>
+		
+	<mx:LinkButton icon="@Embed('assets/filterIcon.png')" 
+		width="20" height="20" toggle="true"
+		mouseOver="mouseOverHandler(event)" mouseOut="mouseOutHandler(event)"
+		click="showPopUp(event)"/>
+		
+	<mx:LinkButton icon="@Embed('assets/cleanFilter.png')" 
+		width="20" height="20" toggle="true"
+		visible="{data.hasFilter}" 
+		includeInLayout="{data.hasFilter}" 
+		mouseOver="mouseOverHandler(event)" mouseOut="mouseOutHandler(event)"		
+		click="cleanFilter(event)"/>
+		
+</mx:HBox>

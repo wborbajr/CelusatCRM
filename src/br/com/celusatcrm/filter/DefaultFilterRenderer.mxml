@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FilterRendererBase xmlns:mx="http://www.adobe.com/2006/mxml" xmlns="br.com.celusatcrm.filter.*" 
+	direction="vertical">
+	
+	<mx:Script>
+		<![CDATA[
+			
+			override public function onFilter(item:Object, itemLabelField:String):Boolean 
+			{
+				return itemLabelField == list.selectedItem;
+			}
+			
+		]]>
+	</mx:Script>
+	
+	<mx:List id="list" dataProvider="{data}" width="100" change="filter()"/>
+	
+</FilterRendererBase>

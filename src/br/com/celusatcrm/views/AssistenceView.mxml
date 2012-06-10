@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:BorderContainer xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:filter="br.com.celusatcrm.filter.*"
+				   width="960" height="540" backgroundAlpha="0.5" backgroundColor="#4F759F"
+				   borderAlpha="0.5" borderWeight="3" cornerRadius="12"
+				   creationComplete="init(event)" currentState="search">
+	
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import br.com.celusatcrm.events.NacoesEventDispatcher;
+			import br.com.celusatcrm.events.NacoesEvents;
+			
+			import com.adobe.serialization.json.JSON;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.events.FlexEvent;
+			import mx.managers.CursorManager;
+			import mx.rpc.AsyncResponder;
+			import mx.rpc.AsyncToken;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.rpc.http.mxml.HTTPService;
+			
+			[Bindable] private var webSevice:HTTPService;
+			[Bindable] private var url:String = "php/assistencia.php";
+			
+			private var firstTime : Boolean = true;
+			private var alertTimer: Timer;
+			
+			//------- filter/search ------- 
+
+			[Bindable] private var filterColumns : ArrayCollection;
+			[Bindable] private var acContent : ArrayCollection;
+			
+			protected function init(event:FlexEvent) : void {
+				alertTimer = new Timer(5000,1);
+				alertTimer.addEventListener(TimerEvent.TIMER_COMPLETE, removeAlert);
+			}
+			
+			protected function resetFilter():void {
+				txFilter.text = "";
+				filterResults();
+			}
+			
+			protected function filterResults() : void {
+				acContent.filterFunction = filterCollection;
+				acContent.refresh();
+			}
+			
+			protected function filterCollection(item:Object) : Boolean {
+				var q:String = txFilter.text.toLowerCase();
+				
+				q = q.toLowerCase();
+				
+				for (var o:String in item) {
+					var value : String = item[o];
+					value = value.toLowerCase();
+					if (value.indexOf(q) >= 0) {
+						return true;
+					}
+				}
+				return false;
+			}
+			
+			//------- filter/search ------- 
+			
+			protected function populateGrid() : void {
+				var objDTO:Object = new Object();
+				objDTO.action = "getall";
+				
+				webSevice = new HTTPService();
+				webSevice.url = url;
+				webSevice.method = "POST";
+				
+				var token:AsyncToken = webSevice.send( objDTO );
+				var responder:AsyncResponder = new AsyncResponder(handlerResult, handlerFault, token);
+				token.addResponder(responder);
+			}
+			
+			protected function handlerResult( event:ResultEvent, token:Object=null ):void {
+				var rawData:String = String(event.result);
+				var arr:Array = (JSON.decode(rawData) as Array);				
+				acContent = new ArrayCollection(arr);
+				dgAssistencia.dataProvider = acContent;
+				
+			}
+			
+			protected function handlerFault( event:FaultEvent, token:Object=null ):void {
+				CursorManager.removeBusyCursor();
+				
+				var errors:String = "Oops! Contacte o Administrador do Sistema\n";
+				errors += "\n Fault Code is : \n" + event.fault.faultCode;
+				errors += "\n Fault Detail is : \n" + event.fault.faultDetail;
+				errors += "\n Fault String is : \n" + event.fault.faultString;
+				
+				Alert.show(errors);
+			}
+			
+			protected function btExit_clickHandler(event:MouseEvent):void
+			{
+				NacoesEventDispatcher.Dispatcher.dispatchEvent( new NacoesEvents( NacoesEvents.MAIN_SCREEN ) );
+			}
+			
+			protected function filterHandler():void {
+				filterResults();
+			}
+			
+			protected function clearInput() : void {
+				if( firstTime ){
+					txFilter.text = "";
+					firstTime = false;
+				}
+			}
+			
+			protected function btNew(event:MouseEvent):void
+			{
+				bcEdit.enabled = true;
+				
+				txId.text = "";
+				txNome.text = "";
+				btDelete.enabled = false;
+			}
+			
+			protected function saveHandler(event:MouseEvent):void {
+				var objDTO:Object = new Object();
+				objDTO.action 	= "save";
+				objDTO.id	= txId.text;
+				objDTO.nome 	= txNome.text.toLocaleUpperCase();
+			
+				bcEdit.enabled = false;
+				
+				webSevice = new HTTPService();
+				webSevice.url = url;
+				webSevice.method = "POST";
+				
+				var token:AsyncToken = webSevice.send( objDTO );
+				var responder:AsyncResponder = new AsyncResponder(handlerSaveResult, handlerFault, token);
+				token.addResponder(responder);
+			}
+			
+			protected function handlerSaveResult( event : ResultEvent, token : Object=null  ) : void {
+				
+				var rawData:String = String(event.result);
+				var data:Object = JSON.decode(rawData);
+				
+				var msg:String = data.msg;
+				
+				if( data.status == 0 ) {
+					txId.text = "";
+					txNome.text = "";
+				}
+				
+				displayAlert ( msg );
+				
+				populateGrid();
+			}
+			
+			protected function displayAlert( msg:String ) : void {
+				lbAlert.text = msg;
+				bcAlert.visible = true;
+				
+				alertTimer.start();
+			}
+			
+			protected function removeAlert( event : TimerEvent ):void {
+				alertTimer.stop();
+				bcAlert.visible = false;
+			}
+			
+			protected function doubleClickHandler(event:MouseEvent):void {
+				
+				bcEdit.enabled = true;
+				btDelete.enabled = true;
+				
+				txId.text   = dgAssistencia.selectedItem.id;
+				txNome.text = dgAssistencia.selectedItem.nome; 
+			}
+			
+			protected function deleteHandler(event:MouseEvent):void {
+				var objDTO:Object = new Object();
+				objDTO.action 	= "delete";
+				objDTO.id		= txId.text;
+				objDTO.nome 	= txNome.text.toLocaleUpperCase();
+				
+				bcEdit.enabled = false;
+				btDelete.enabled = false;
+				
+				webSevice = new HTTPService();
+				webSevice.url = url;
+				webSevice.method = "POST";
+				
+				var token:AsyncToken = webSevice.send( objDTO );
+				var responder:AsyncResponder = new AsyncResponder(handlerSaveResult, handlerFault, token);
+				token.addResponder(responder);
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:states>
+		<s:State name="search"/>
+	</s:states>
+	
+	<s:Button id="btExit" right="-10" top="-10" width="44" height="44" label="Fechar"
+			  click="btExit_clickHandler(event)" cornerRadius="8" icon="@Embed('assets/close.png')"/>
+	
+	<s:DataGrid id="dgAssistencia" x="10" y="88" width="474" height="370"
+				contentBackgroundAlpha="0.5" creationComplete="{populateGrid();}"
+				doubleClick="doubleClickHandler(event)" doubleClickEnabled="true" 
+				typicalItem="{{id: '100', nome: 'Brasil Assistencia'}}">
+		
+		<s:columns>
+			<s:ArrayList>
+				<s:GridColumn dataField="id" headerText="ID"></s:GridColumn>
+				<s:GridColumn dataField="nome" headerText="Nome"></s:GridColumn>
+			</s:ArrayList>
+		</s:columns>
+		
+	</s:DataGrid>
+	
+	<s:BorderContainer x="10" y="466" width="934" height="58" backgroundAlpha="0.5" borderAlpha="0.5"
+					   borderColor="#CA0D0D" borderWeight="3">
+		<s:Button x="10" height="44" click="btNew(event)" cornerRadius="12" fontWeight="bold"
+				  icon="@Embed('assets/new.png')" verticalCenter="0"/>
+		<s:Button x="121" height="44" cornerRadius="12" fontWeight="bold"
+				  icon="@Embed('assets/delete.png')" verticalCenter="0" visible="false"/>
+	</s:BorderContainer>
+	
+	<s:Label left="0" top="-22" color="#FF0000" fontFamily="Verdana" fontSize="22" fontWeight="bold"
+			 text="Assistência"/>
+	<s:TextInput id="txFilter" x="10" y="51" width="416" change="filterHandler()"
+				 focusIn="clearInput()" fontFamily="Verdana" fontWeight="bold" text="Procurar..."/>
+	
+	<s:Button id="btFilter0" x="434" y="42" width="50" height="38" label="Procurar"
+			  click="resetFilter()" icon="@Embed('assets/clear_filter.png')"/>
+	<s:BorderContainer id="bcEdit" x="492" y="88" width="439" height="220" backgroundAlpha="0.5"
+					   borderAlpha="0.5" borderWeight="3" dropShadowVisible="true" enabled="false">
+		<s:layout>
+			<s:BasicLayout/>
+		</s:layout>
+		
+		<s:Form x="10" y="10">
+			<s:layout>
+				<s:FormLayout/>
+			</s:layout>
+			<s:FormItem label="ID">
+				<s:TextInput id="txId" width="62" enabled="false"/>
+			</s:FormItem>
+			<s:FormItem label="Nome">
+				<s:TextInput id="txNome" width="300"/>
+			</s:FormItem>
+		</s:Form>
+		<s:BorderContainer x="10" y="146" width="413" height="58" backgroundAlpha="0.5"
+						   borderAlpha="0.5" borderColor="#CA0D0D" borderWeight="3" >
+			<s:Button id="btSave" x="10" height="44" click="saveHandler(event)"
+					  cornerRadius="12" fontWeight="bold" icon="@Embed('assets/save.png')"
+					  verticalCenter="0"/>
+			<s:Button id="btDelete" x="121" height="44" click="deleteHandler(event)"
+					  cornerRadius="12" enabled="false" fontWeight="bold"
+					  icon="@Embed('assets/delete.png')" verticalCenter="0"/>
+		</s:BorderContainer>
+	</s:BorderContainer>
+	<s:BorderContainer id="bcAlert"  x="492" y="418" width="452" height="40"
+					   backgroundAlpha="1.0" backgroundColor="#FF0000" borderColor="#FFFFFF"
+					   borderWeight="3" cornerRadius="12" dropShadowVisible="true" visible="false">
+		<s:Label id="lbAlert" color="#FFFFFF" fontFamily="Verdana" fontSize="14" fontWeight="bold"
+				 horizontalCenter="0" text="alert..." verticalCenter="0"/>
+	</s:BorderContainer>
+</s:BorderContainer>

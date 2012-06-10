@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:BorderContainer xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   width="960" height="540" backgroundAlpha="0.5" backgroundColor="#4F759F"
+				   borderAlpha="0.5" borderColor="#CA0D0D" borderWeight="6" cornerRadius="12">
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import br.com.celusatcrm.events.NacoesEventDispatcher;
+			import br.com.celusatcrm.events.NacoesEvents;
+			
+			import com.adobe.serialization.json.JSON;
+			
+			protected function btLogin_clickHandler(event:MouseEvent):void {
+				if (txUsuario.text == "admin" && txSenha.text == "admin") {
+					NacoesEventDispatcher.Dispatcher.dispatchEvent( new NacoesEvents( NacoesEvents.LOGIN_VALID ) ) ;
+				}
+				
+			}
+			
+			protected function backEndConnect():void {
+				var loader:URLLoader = new URLLoader();
+				var header:URLRequestHeader = null;
+				var requester:URLRequest = new URLRequest();
+				
+				header = new URLRequestHeader("pragma", "no-cache");
+				
+				requester.requestHeaders.push(header);
+				requester.method = URLRequestMethod.POST;
+				
+				configureListeners(loader);
+				
+				loader.dataFormat = URLLoaderDataFormat.TEXT;
+				
+				// Modify to your needs
+				requester.url = "http://localhost:8085/MessageServer/servlet/MessageServlet";
+				
+				var obj:Object = new Object();
+				obj.usuario = txUsuario.text;
+				obj.senha = txSenha.text;
+				
+				var variables:URLVariables = new URLVariables();
+				variables.myObject = JSON.encode(obj);
+				requester.data = variables;
+				
+				loader.load(requester);
+			}
+			private function configureListeners(dispatcher:IEventDispatcher):void
+			{
+				dispatcher.addEventListener(Event.COMPLETE, completeHandler);
+				dispatcher.addEventListener(Event.OPEN, openHandler);
+				dispatcher.addEventListener(ProgressEvent.PROGRESS, progressHandler);
+				dispatcher.addEventListener(SecurityErrorEvent.SECURITY_ERROR, securityErrorHandler);
+				dispatcher.addEventListener(HTTPStatusEvent.HTTP_STATUS, httpStatusHandler);
+				dispatcher.addEventListener(IOErrorEvent.IO_ERROR, ioErrorHandler);
+			}
+			
+			private function completeHandler(event:Event):void
+			{
+				try
+				{
+					var tempLoader:URLLoader = URLLoader(event.target);
+					var obj:Object = JSON.decode(tempLoader.data);
+					
+					trace("completeHandler: " + tempLoader.data);
+					trace(obj.value1);
+					trace(obj.value2);
+				}
+				catch (error:Error)
+				{
+					trace("completeHandler: " + error.toString());
+				}
+			}
+			
+			private function openHandler(event:Event):void
+			{
+				trace("openHandler: " + event);
+			}
+			
+			private function progressHandler(event:ProgressEvent):void
+			{
+				trace("progressHandler loaded:" + event.bytesLoaded + " total: " + event.bytesTotal);
+			}
+			
+			private function securityErrorHandler(event:SecurityErrorEvent):void
+			{
+				trace("securityErrorHandler: " + event);
+			}
+			
+			private function httpStatusHandler(event:HTTPStatusEvent):void
+			{
+				trace("httpStatusHandler: " + event);
+			}
+			
+			private function ioErrorHandler(event:IOErrorEvent):void
+			{
+				trace("ioErrorHandler: " + event);
+			}
+			
+			
+		]]>
+	</fx:Script>
+	
+	<s:Label x="449" y="225" fontSize="14" text="Usuário"/>
+	<s:Label x="448" y="283" fontSize="14" text="Senha"/>
+	<s:TextInput id="txUsuario" x="449" y="247" width="223" tabIndex="0" text="admin"/>
+	<s:TextInput id="txSenha" x="449" y="305" width="223" displayAsPassword="true" tabIndex="1"
+				 text="admin"/>
+	<s:Button id="btLogin" x="562" y="351" width="110" height="45" label="Entrar"
+			  click="btLogin_clickHandler(event)" fontSize="14" fontWeight="bold" tabIndex="2"/>
+	<s:Image x="819" y="-83" width="170" height="174" backgroundAlpha="0.5" smooth="true"
+			 smoothingQuality="high" source="@Embed('assets/login.png')"/>
+	<s:Image x="67" y="153" width="313" height="247" backgroundAlpha="0.5" scaleMode="letterbox"
+			 smooth="true" smoothingQuality="high" source="@Embed('assets/logo.png')"/>
+</s:BorderContainer>

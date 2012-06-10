@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Application xmlns:fx="http://ns.adobe.com/mxml/2009"
+			   xmlns:s="library://ns.adobe.com/flex/spark"
+			   xmlns:mx="library://ns.adobe.com/flex/mx"
+			   xmlns:views="br.com.celusatcrm.views.*"
+			   minWidth="955" minHeight="600" currentState="login"
+			   creationComplete="init(event)"
+			   preloader="br.com.library.Preloader">
+	
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import br.com.celusatcrm.events.NacoesEventDispatcher;
+			import br.com.celusatcrm.events.NacoesEvents;
+			
+			protected function init(event:Event) : void {
+				
+				// Login Handler
+				NacoesEventDispatcher.Dispatcher.addEventListener( NacoesEvents.LOGIN_VALID, loginHandler );
+				
+				// Logout Handler
+				NacoesEventDispatcher.Dispatcher.addEventListener( NacoesEvents.LOGOUT, logoutHandler );
+			}
+			
+			protected function loginHandler( event:NacoesEvents ) : void {
+				this.currentState = "mainview";
+			}
+			
+			protected function logoutHandler( event:NacoesEvents ) : void {
+				this.currentState = "login";
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:states>
+		<s:State name="login"/>
+		<s:State name="mainview"/>
+	</s:states>
+	
+	<views:LoginView includeIn="login" horizontalCenter="0" verticalCenter="0">
+	</views:LoginView>
+	<views:MainView includeIn="mainview" horizontalCenter="0" verticalCenter="0">
+	</views:MainView>
+	
+</s:Application>

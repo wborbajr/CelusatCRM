@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:BorderContainer xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:views="br.com.celusatcrm.views.*"
+				   width="960" height="540" backgroundAlpha="0.5" backgroundColor="#4F759F"
+				   borderAlpha="0.5" borderColor="#CA0D0D" borderWeight="6" cornerRadius="12"
+				   currentState="menu"
+				   borderVisible.assistencia="false"
+				   borderVisible.atendente="false"
+				   borderVisible.chamado="false"
+				   borderVisible.motorista="false"
+				   creationComplete="init(event)">
+	
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import br.com.celusatcrm.events.NacoesEventDispatcher;
+			import br.com.celusatcrm.events.NacoesEvents;
+			import br.com.celusatcrm.util.SOSConfig;
+			
+			protected function init(event:Event) : void {
+				NacoesEventDispatcher.Dispatcher.addEventListener( NacoesEvents.MAIN_SCREEN, mainscreenHandler );
+			}
+			
+			protected function btLogout_clickHandler(event:MouseEvent):void
+			{
+				NacoesEventDispatcher.Dispatcher.dispatchEvent( new NacoesEvents ( NacoesEvents.LOGOUT ) );				
+			}
+			
+			protected function mainscreenHandler( event:NacoesEvents ) : void {
+				this.currentState = "menu";
+			}
+			
+			protected function btAssistencia_clickHandler(event:MouseEvent):void
+			{
+				this.currentState = "assistencia"; 
+			}
+			
+			protected function btAtendente_clickHandler(event:MouseEvent):void
+			{
+				this.currentState = "atendente"; 
+			}
+			
+			protected function btMotorista_clickHandler(event:MouseEvent):void
+			{
+				this.currentState = "motorista"; 
+			}
+			
+			protected function btChamado_clickHandler(event:MouseEvent):void
+			{
+				this.currentState = "chamado";
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:states>
+		<s:State name="menu"/>
+		<s:State name="assistencia"/>
+		<s:State name="motorista"/>
+		<s:State name="chamado"/>
+		<s:State name="atendente"/>
+	</s:states>
+	
+	<s:Button id="btAssistencia" includeIn="menu" x="115" y="36" width="220" height="117"
+			  label="Assistências" click="btAssistencia_clickHandler(event)" color="#FF0000"
+			  cornerRadius="12" fontFamily="Verdana" fontSize="14" fontWeight="bold"
+			  icon="@Embed('assets/assistencia.png')"/>
+	<s:Button id="btMotorista" includeIn="menu" x="614" y="36" width="220" height="117"
+			  label="Motoristas" click="btMotorista_clickHandler(event)" color="#FF0000"
+			  cornerRadius="12" fontFamily="Verdana" fontSize="14" fontWeight="bold"
+			  icon="@Embed('assets/motorista.png')"/>
+	<s:Button id="btAtendente" includeIn="menu" x="364" y="36" width="220" height="117"
+			  label="Atendentes" click="btAtendente_clickHandler(event)" color="#FF0000"
+			  cornerRadius="12" fontFamily="Verdana" fontSize="14" fontWeight="bold"
+			  icon="@Embed('assets/atendente.png')"/>
+	<s:Button id="btChamado" includeIn="menu" x="364" y="189" width="220" height="117"
+			  label="Chamados" click="btChamado_clickHandler(event)" color="#FF0000"
+			  cornerRadius="12" fontFamily="Verdana" fontSize="14" fontWeight="bold"
+			  icon="@Embed('assets/chamado.png')"/>
+	<s:Button id="btLogout" includeIn="menu" x="614" y="384" width="220" height="117" label="Sair"
+			  click="btLogout_clickHandler(event)" color="#FF0000" cornerRadius="12"
+			  fontFamily="Verdana" fontSize="14" fontWeight="bold"
+			  icon="@Embed('assets/logout.png')"/>
+	<s:Label includeIn="menu" x="779" y="538" fontFamily="Courier New" fontSize="10"
+			 fontWeight="bold" text="Copyright (c) 2011 - v 2.0.e"/>
+	<views:AssistenceView includeIn="assistencia" left="0" right="0" top="0" bottom="0">
+	</views:AssistenceView>
+	<views:DriverView includeIn="motorista" left="0" right="0" top="0" bottom="0">
+	</views:DriverView>
+	<views:InvoiceView includeIn="chamado" left="0" right="0" top="0" bottom="0">
+	</views:InvoiceView>
+	<views:AttendanteView includeIn="atendente" left="00" right="0" top="0" bottom="0">
+	</views:AttendanteView>
+	<s:Label includeIn="menu" x="11" y="-32" color="#FF0000" fontFamily="Verdana" fontSize="18"
+			 fontWeight="bold" text="SOS NAÇÕES - Controle de Chamados"/>
+	<s:Button id="btComissao" includeIn="menu" x="115" y="384" width="220" height="117"
+			  label="Comissão" color="#FF0000" cornerRadius="12" fontFamily="Verdana" fontSize="14"
+			  fontWeight="bold" icon="@Embed('assets/report.png')"/>
+</s:BorderContainer>

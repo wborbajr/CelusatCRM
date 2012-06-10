@@ -1,0 +1,485 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:BorderContainer xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:filter="br.com.celusatcrm.filter.*"
+				   width="960" height="540" backgroundAlpha="0.5" backgroundColor="#4F759F"
+				   creationComplete="init(event)" currentState="search"
+				   tabIndex.crud="0"
+				   borderAlpha.search="0.5" borderWeight.search="3" cornerRadius.search="12">
+	
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import br.com.celusatcrm.events.NacoesEventDispatcher;
+			import br.com.celusatcrm.events.NacoesEvents;
+			
+			import com.adobe.serialization.json.JSON;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.events.FlexEvent;
+			import mx.managers.CursorManager;
+			import mx.rpc.AsyncResponder;
+			import mx.rpc.AsyncToken;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.rpc.http.mxml.HTTPService;
+			
+			[Bindable] private var webSevice:HTTPService;
+			[Bindable] private var url:String = "php/chamado.php";
+			
+			private var firstTime : Boolean = true;
+			private var alertTimer: Timer;
+			
+			//------- filter/search ------- 
+			
+			[Bindable] private var filterColumns : ArrayCollection;
+			[Bindable] private var acContent : ArrayCollection;
+			
+			private var objDTO:Object;
+			
+			protected function init(event:FlexEvent) : void {
+				alertTimer = new Timer(5000,1);
+				alertTimer.addEventListener(TimerEvent.TIMER_COMPLETE, removeAlert);
+			}
+			
+			protected function resetFilter():void {
+				txFilter.text = "";
+				filterResults();
+			}
+			
+			protected function filterResults() : void {
+				acContent.filterFunction = filterCollection;
+				acContent.refresh();
+			}
+			
+			protected function filterCollection(item:Object) : Boolean {
+				var q:String = txFilter.text.toLowerCase();
+				
+				q = q.toLowerCase();
+				
+				for (var o:String in item) {
+					var value : String = item[o];
+					value = value.toLowerCase();
+					if (value.indexOf(q) >= 0) {
+						return true;
+					}
+				}
+				return false;
+			}
+			
+			//------- filter/search ------- 
+			
+			
+			// ------ poupulate Combos --------
+			protected function pupulateMotorista(event:Event) : void {
+				var objDTO:Object = new Object();
+				objDTO.action = "getall";
+				
+				var url:String = "php/motorista.php";
+				webSevice = new HTTPService();
+				webSevice.url = url;
+				webSevice.method = "POST";
+				
+				var token:AsyncToken = webSevice.send( objDTO );
+				var responder:AsyncResponder = new AsyncResponder(driverResultHandler, handlerFault, token);
+				token.addResponder(responder);
+			}
+			
+			protected function driverResultHandler( event:ResultEvent, token:Object=null ):void {
+				var rawData:String = String(event.result);
+				var arr:Array = (JSON.decode(rawData) as Array);				
+				acContent = new ArrayCollection(arr);
+				cbMotorista.dataProvider = acContent;
+				
+			}
+			
+			protected function pupulateAssistencia(event:Event) : void {
+				var objDTO:Object = new Object();
+				objDTO.action = "getall";
+				
+				var url:String = "php/assistencia.php";
+				webSevice = new HTTPService();
+				webSevice.url = url;
+				webSevice.method = "POST";
+				
+				var token:AsyncToken = webSevice.send( objDTO );
+				var responder:AsyncResponder = new AsyncResponder(assistenciaResultHandler, handlerFault, token);
+				token.addResponder(responder);
+			}
+			
+			protected function assistenciaResultHandler( event:ResultEvent, token:Object=null ):void {
+				var rawData:String = String(event.result);
+				var arr:Array = (JSON.decode(rawData) as Array);				
+				acContent = new ArrayCollection(arr);
+				cbAssistencia.dataProvider = acContent;
+				
+			}
+			
+			protected function popuplateAtendente(event:Event) : void {
+				var objDTO:Object = new Object();
+				objDTO.action = "getall";
+				
+				var url:String = "php/atendente.php";
+				webSevice = new HTTPService();
+				webSevice.url = url;
+				webSevice.method = "POST";
+				
+				var token:AsyncToken = webSevice.send( objDTO );
+				var responder:AsyncResponder = new AsyncResponder(atendenteResultHandler, handlerFault, token);
+				token.addResponder(responder);
+			}
+			
+			protected function atendenteResultHandler( event:ResultEvent, token:Object=null ):void {
+				var rawData:String = String(event.result);
+				var arr:Array = (JSON.decode(rawData) as Array);				
+				acContent = new ArrayCollection(arr);
+				cbConclusao.dataProvider = acContent;
+				
+			}
+			// ------ /poupulate Combos --------
+			
+			protected function populateGrid() : void {
+				var objDTO:Object = new Object();
+				objDTO.action = "search";
+				
+				webSevice = new HTTPService();
+				webSevice.url = url;
+				webSevice.method = "POST";
+				
+				var token:AsyncToken = webSevice.send( objDTO );
+				var responder:AsyncResponder = new AsyncResponder(handlerResult, handlerFault, token);
+				token.addResponder(responder);
+			}
+			
+			protected function handlerResult( event:ResultEvent, token:Object=null ):void {
+				var rawData:String = String(event.result);
+				var arr:Array = (JSON.decode(rawData) as Array);				
+				acContent = new ArrayCollection(arr);
+				dgFiltro.dataProvider = acContent;
+				
+			}
+			
+			protected function handlerFault( event:FaultEvent, token:Object=null ):void {
+				CursorManager.removeBusyCursor();
+				
+				var errors:String = "Oops! Contacte o Administrador do Sistema\n";
+				errors += "\n Fault Code is : \n" + event.fault.faultCode;
+				errors += "\n Fault Detail is : \n" + event.fault.faultDetail;
+				errors += "\n Fault String is : \n" + event.fault.faultString;
+				
+				Alert.show(errors);
+			}
+			
+			protected function btExit_clickHandler(event:MouseEvent):void
+			{
+				NacoesEventDispatcher.Dispatcher.dispatchEvent( new NacoesEvents( NacoesEvents.MAIN_SCREEN ) );
+			}
+			
+			protected function filterHandler():void {
+				filterResults();
+			}
+			
+			protected function clearInput() : void {
+				if( firstTime ){
+					txFilter.text = "";
+					firstTime = false;
+				}
+			}
+			
+			protected function btNew(event:MouseEvent):void
+			{
+				this.currentState = "crud";
+				clearFields();
+			}
+			
+			protected function clearFields() : void {
+				txAceito.text = "";
+				txCheckList.text = "";
+				txCliente.text = "";
+				txCor.text = "";
+				txDestino.text = "";
+				txFolha.text = "";
+				txFone.text = "";
+				txFrota.text = "";
+				txHPassado.text = "";
+				txHPedido.text = "";
+				txKmFinal.text = "";
+				txKmInicial.text = "";
+				txLocal.text = "";
+				txNF.text = "";
+				txObservacao.text = "";
+				txPedagio.text = "";
+				txPedido.text = "";
+				txPlaca.text = "";
+				txPrevisao.text = "";
+				txServico.text = "";
+				txTotal.text = "";
+				txVeiculo.text = "";
+//				cbAssistencia.selectedIndex = -1;
+//				cbConclusao.selectedIndex = -1;
+//				cbMotorista.selectedIndex = -1;
+			}
+			
+			protected function getValues() : void {
+				
+				objDTO.id		= txID.text;
+				objDTO.cliente	= txCliente.text;
+				objDTO.fone		= txFone.text;
+				objDTO.veiculo	= txVeiculo.text;
+				objDTO.cor		= txCor.text;
+				objDTO.placa	= txPlaca.text;
+				objDTO.local	= txLocal.text;
+				objDTO.destino	= txDestino.text;
+				objDTO.valor	= txTotal.text;
+				objDTO.kminicial= txKmInicial.text;
+				objDTO.kmfinal	= txKmFinal.text;
+				objDTO.pedagio	= txPedagio.text;
+				objDTO.chklist	= txCheckList.text;
+				objDTO.assistencia	= cbAssistencia.selectedItem;
+				objDTO.nrpedido	= txPedido.text;
+//				objDTO.hacionamento	= txh.text;
+//				objDTO.hconclusao	= txh.text;
+				objDTO.folha	= txFolha.text;
+				objDTO.servico	= txServico.text;
+				objDTO.motorista	= cbMotorista.selectedItem;
+				objDTO.frota	= txFrota.text;
+				objDTO.observacao	= txObservacao.text;
+//				objDTO.atendente	= cb.text;
+				objDTO.notafiscal	= txNF.text;
+				objDTO.previsao	= txPrevisao.text;
+				objDTO.hpassado	= txHPassado.text;
+				objDTO.aceito	= txAceito.text;
+				
+			}
+			
+			protected function saveHandler(event:MouseEvent):void {
+				objDTO = new Object();
+				objDTO.action 	= "save";
+				getValues();
+				
+//				clearFields();
+				
+				bcEdit.enabled = false;
+				
+				webSevice = new HTTPService();
+				webSevice.url = url;
+				webSevice.method = "POST";
+				
+				var token:AsyncToken = webSevice.send( objDTO );
+				var responder:AsyncResponder = new AsyncResponder(handlerSaveResult, handlerFault, token);
+				token.addResponder(responder);
+			}
+			
+			protected function handlerSaveResult( event : ResultEvent, token : Object=null  ) : void {
+				
+				var rawData:String = String(event.result);
+				var data:Object = JSON.decode(rawData);
+				
+				var msg:String = data.msg;
+				
+				if( data.status == 0 ) {
+					clearFields();
+				}
+				
+				displayAlert ( msg );
+				
+				populateGrid();
+			}
+			
+			protected function displayAlert( msg:String ) : void {
+				lbAlert.text = msg;
+				bcAlert.visible = true;
+				
+				alertTimer.start();
+			}
+			
+			protected function removeAlert( event : TimerEvent ):void {
+				alertTimer.stop();
+				bcAlert.visible = false;
+			}
+			
+			protected function doubleClickHandler(event:MouseEvent):void {
+				bcEdit.enabled = true;
+				btDelete.enabled = true;
+				
+				clearFields();
+
+			}
+			
+			protected function deleteHandler(event:MouseEvent):void {
+				var objDTO:Object = new Object();
+				objDTO.action 	= "delete";
+				
+				clearFields();
+
+				bcEdit.enabled = false;
+				btDelete.enabled = false;
+				
+				webSevice = new HTTPService();
+				webSevice.url = url;
+				webSevice.method = "POST";
+				
+				var token:AsyncToken = webSevice.send( objDTO );
+				var responder:AsyncResponder = new AsyncResponder(handlerSaveResult, handlerFault, token);
+				token.addResponder(responder);
+			}
+			
+			protected function dgFiltro_doubleClickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				
+			}
+			
+			
+			protected function btBack_clickHandler(event:MouseEvent):void
+			{
+				this.currentState = "search";
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:states>
+		<s:State name="search"/>
+		<s:State name="crud" enterState="{pupulateAssistencia(event);} {pupulateMotorista(event);} {popuplateAtendente(event);}"/>
+	</s:states>
+	
+	<s:Button id="btExit" includeIn="search" right="-10" top="-10" width="44" height="44"
+			  label="Fechar" click="btExit_clickHandler(event)" cornerRadius="8"
+			  icon="@Embed('assets/close.png')"/>
+	
+	<s:DataGrid id="dgFiltro" includeIn="search" x="10" y="75" width="934" height="383"
+				contentBackgroundAlpha="0.5" 
+				requestedRowCount="4" 
+				creationComplete="{populateGrid()}"
+				doubleClickEnabled="true"
+				doubleClick="dgFiltro_doubleClickHandler(event)">
+		<s:columns>
+			<s:ArrayList>
+				<s:GridColumn dataField="id" headerText="Código"></s:GridColumn>
+				<s:GridColumn dataField="nrpedido" headerText="Nr.Chamado"></s:GridColumn>
+				<s:GridColumn dataField="placa" headerText="Placa"></s:GridColumn>
+				<s:GridColumn dataField="nome" headerText="Assistência"></s:GridColumn>
+				<s:GridColumn dataField="dtaceito" headerText="Aceite"></s:GridColumn>
+			</s:ArrayList>
+		</s:columns>
+	</s:DataGrid>
+	
+	<s:BorderContainer includeIn="search" x="10" y="466" width="934" height="58"
+					   backgroundAlpha="0.5" borderWeight="3" borderAlpha="0.5" borderColor="#CA0D0D">
+		<s:Button x="10" height="44" click="btNew(event)" cornerRadius="12"
+				  fontWeight="bold" icon="@Embed('assets/new.png')" verticalCenter="0"/>
+		<s:Button x="121" height="44" cornerRadius="12" fontWeight="bold"
+				  icon="@Embed('assets/delete.png')" verticalCenter="0"/>
+	</s:BorderContainer>
+	<s:Label includeIn="search" left="0" top="-22" color="#FF0000" fontFamily="Verdana" fontSize="22"
+			 fontWeight="bold" text="Assistência"/>
+	<s:TextInput id="txFilter" includeIn="search" x="13" y="37" width="467"
+				 change="filterHandler()" fontFamily="Verdana" fontWeight="bold"
+				 text="Procurar..." focusIn="clearInput()"/>
+	<s:Button id="btFilter0" includeIn="search" x="488" y="29" width="50" height="38"
+			  label="Procurar" click="resetFilter()" icon="@Embed('assets/clear_filter.png')"/>
+		<s:FormItem includeIn="crud" x="10" y="23" width="354" label="Cliente">
+			<s:TextInput id="txCliente" width="277"/>
+		</s:FormItem>
+		<s:FormItem includeIn="crud" x="372" y="23" width="150" label="Fone">
+			<s:TextInput id="txFone" width="93" tabIndex="1" text="(00) 0000-0000 "/>
+		</s:FormItem>
+		<s:FormItem includeIn="crud" x="10" y="73" width="279" label="Veículo">
+			<s:TextInput id="txVeiculo" width="207" tabIndex="2"/>
+		</s:FormItem>
+		<s:FormItem includeIn="crud" x="297" y="73" label="Cor">
+			<s:TextInput id="txCor" tabIndex="3"/>
+		</s:FormItem>
+		<s:FormItem includeIn="crud" x="512" y="73" width="127" label="Placa">
+			<s:TextInput id="txPlaca" width="66" tabIndex="4" text="AAA-0000"/>
+		</s:FormItem>
+		<s:FormItem includeIn="crud" x="648" y="73" width="162" label="Aceito em">
+			<s:TextInput id="txAceito" width="74" tabIndex="5" text="99/99/9999"/>
+		</s:FormItem>
+		<s:FormItem includeIn="crud" x="297" y="221" width="126" label="Nr Pedido">
+			<s:TextInput id="txPedido" width="42" tabIndex="9" text="00:00"/>
+		</s:FormItem>
+	<s:FormItem includeIn="crud" x="10" y="123" width="422" label="Local">
+		<s:TextArea id="txLocal" width="356" height="70" tabIndex="6"/>
+	</s:FormItem>
+	<s:FormItem includeIn="crud" x="444" y="123" width="433" label="Destino">
+		<s:TextArea id="txDestino" width="356" height="70" tabIndex="7"/>
+	</s:FormItem>
+	<s:FormItem includeIn="crud" x="10" y="221" width="279" label="Assistência">
+		<s:ComboBox id="cbAssistencia" width="182" labelField="nome" tabIndex="8"/>
+	</s:FormItem>
+	<s:FormItem includeIn="crud" x="431" y="221" width="126" label="H Pedido">
+		<s:TextInput id="txHPedido" width="44" tabIndex="10" text="00:00"/>
+	</s:FormItem>
+	<s:FormItem includeIn="crud" x="565" y="221" width="133" label="H Passado">
+		<s:TextInput id="txHPassado" width="41" tabIndex="11" text="00:00"/>
+	</s:FormItem>
+	<s:FormItem includeIn="crud" x="706" y="221" width="124" label="Previsão">
+		<s:TextInput id="txPrevisao" width="43" tabIndex="12" text="00:00"/>
+	</s:FormItem>
+	<s:FormItem includeIn="crud" x="10" y="272" width="115" label="Folha">
+		<s:TextInput id="txFolha" width="52" tabIndex="13" text="000000"/>
+	</s:FormItem>
+	<s:FormItem includeIn="crud" x="131" y="272" width="196" label="Check List">
+		<s:TextInput id="txCheckList" width="107" tabIndex="14"/>
+	</s:FormItem>
+	<s:FormItem includeIn="crud" x="335" y="272" width="196" label="Serviço">
+		<s:TextInput id="txServico" width="122" tabIndex="15"/>
+	</s:FormItem>
+	<s:FormItem includeIn="crud" x="539" y="271" width="244" label="Motorista">
+		<s:ComboBox id="cbMotorista" width="164" labelField="nome" tabIndex="16"/>
+	</s:FormItem>
+	<s:FormItem includeIn="crud" x="791" y="271" width="97" label="Frota">
+		<s:TextInput id="txFrota" width="36" tabIndex="17" text="000"/>
+	</s:FormItem>
+	<s:FormItem includeIn="crud" x="10" y="321" width="140" label="Km Inicial">
+		<s:TextInput id="txKmInicial" width="56" tabIndex="18" text="0000000"/>
+	</s:FormItem>
+	<s:FormItem includeIn="crud" x="158" y="321" width="136" label="Km Final">
+		<s:TextInput id="txKmFinal" width="60" tabIndex="19" text="0000000"/>
+	</s:FormItem>
+	<s:FormItem includeIn="crud" x="302" y="321" width="148" label="Pedágio R$">
+		<s:TextInput id="txPedagio" width="52" tabIndex="20" text="000,00"/>
+	</s:FormItem>
+	<s:FormItem includeIn="crud" x="458" y="321" width="128" label="Total R$">
+		<s:TextInput id="txTotal" width="52" tabIndex="21" text="000,00"/>
+	</s:FormItem>
+	<s:FormItem includeIn="crud" x="10" y="371" width="340" label="Conclusão">
+		<s:ComboBox id="cbConclusao" labelField="nome" width="245" tabIndex="23"/>
+	</s:FormItem>
+	<s:FormItem includeIn="crud" x="594" y="321" width="104" label="NF">
+		<s:TextInput id="txNF" width="52" tabIndex="22" text="000000"/>
+	</s:FormItem>
+	<s:FormItem includeIn="crud" x="358" y="371" width="457" label="Observação">
+		<s:TextArea id="txObservacao" width="356" height="50" tabIndex="24"/>
+	</s:FormItem>
+	<s:BorderContainer id="bcEdit" includeIn="crud" left="10" right="10" bottom="10" height="58"
+					   backgroundAlpha="0.5" borderAlpha="0.5" borderColor="#CA0D0D"
+					   borderWeight="3">
+		<s:Button id="btSave" x="10" height="44" click="saveHandler(event)"
+				  cornerRadius="12" fontWeight="bold" icon="@Embed('assets/save.png')"
+				  verticalCenter="0"/>
+		<s:Button id="btDelete" x="121" height="44" click="deleteHandler(event)"
+				  cornerRadius="12" enabled="false" fontWeight="bold"
+				  icon="@Embed('assets/delete.png')" verticalCenter="0"/>
+		<s:BorderContainer id="bcAlert" includeIn="crud" visible="false" x="470" y="5" width="452"
+						   height="40" backgroundAlpha="1.0" backgroundColor="#FF0000"
+						   borderColor="#FFFFFF" borderVisible="true" borderWeight="3"
+						   cornerRadius="12" dropShadowVisible="true">
+			<s:Label id="lbAlert" color="#FFFFFF" fontFamily="Verdana" fontSize="14" fontWeight="bold"
+					 horizontalCenter="0" text="alert..." verticalCenter="0"/>
+		</s:BorderContainer>
+		<s:Button id="btBack"  x="287" height="44" click="btBack_clickHandler(event)"
+				  cornerRadius="12" fontWeight="bold" icon="@Embed('assets/back.png')"
+				  verticalCenter="0"/>
+	</s:BorderContainer>
+	<s:FormItem includeIn="crud" x="773" y="371" width="115" label="ID" visible="false">
+		<s:TextInput id="txID" width="52" tabIndex="13" text=""/>
+	</s:FormItem>
+</s:BorderContainer>
